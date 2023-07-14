@@ -58,6 +58,7 @@
 #![cfg_attr(test, deny(warnings))]
 // Disallow warnings in examples.
 #![doc(test(attr(deny(warnings))))]
+#![feature(maybe_uninit_slice)]
 
 use std::fmt;
 use std::mem::MaybeUninit;
@@ -102,7 +103,7 @@ macro_rules! from {
     ($from: ty, $for: ty) => {
         impl From<$from> for $for {
             fn from(socket: $from) -> $for {
-                #[cfg(unix)]
+                #[cfg(any(unix, target_os = "arceos"))]
                 unsafe {
                     <$for>::from_raw_fd(socket.into_raw_fd())
                 }
@@ -115,15 +116,104 @@ macro_rules! from {
     };
 }
 
+/// A macro for defining #[cfg] if-else statements.
+///
+/// This is similar to the `if/elif` C preprocessor macro by allowing definition
+/// of a cascade of `#[cfg]` cases, emitting the implementation which matches
+/// first.
+///
+/// This allows you to conveniently provide a long list #[cfg]'d blocks of code
+/// without having to rewrite each clause multiple times.
+macro_rules! cfg_if {
+    // match if/else chains with a final `else`
+    ($(
+        if #[cfg($($meta:meta),*)] { $($it:item)* }
+    ) else * else {
+        $($it2:item)*
+    }) => {
+        cfg_if! {
+            @__items
+            () ;
+            $( ( ($($meta),*) ($($it)*) ), )*
+            ( () ($($it2)*) ),
+        }
+    };
+
+    // match if/else chains lacking a final `else`
+    (
+        if #[cfg($($i_met:meta),*)] { $($i_it:item)* }
+        $(
+            else if #[cfg($($e_met:meta),*)] { $($e_it:item)* }
+        )*
+    ) => {
+        cfg_if! {
+            @__items
+            () ;
+            ( ($($i_met),*) ($($i_it)*) ),
+            $( ( ($($e_met),*) ($($e_it)*) ), )*
+            ( () () ),
+        }
+    };
+
+    // Internal and recursive macro to emit all the items
+    //
+    // Collects all the negated `cfg`s in a list at the beginning and after the
+    // semicolon is all the remaining items
+    (@__items ($($not:meta,)*) ; ) => {};
+    (@__items ($($not:meta,)*) ; ( ($($m:meta),*) ($($it:item)*) ),
+     $($rest:tt)*) => {
+        // Emit all items within one block, applying an appropriate #[cfg]. The
+        // #[cfg] will require all `$m` matchers specified and must also negate
+        // all previous matchers.
+        cfg_if! { @__apply cfg(all($($m,)* not(any($($not),*)))), $($it)* }
+
+        // Recurse to emit all other items in `$rest`, and when we do so add all
+        // our `$m` matchers to the list of `$not` matchers as future emissions
+        // will have to negate everything we just matched as well.
+        cfg_if! { @__items ($($not,)* $($m,)*) ; $($rest)* }
+    };
+
+    // Internal macro to Apply a cfg attribute to a list of items
+    (@__apply $m:meta, $($it:item)*) => {
+        $(#[$m] $it)*
+    };
+}
+
 mod sockaddr;
-mod socket;
 mod sockref;
+#[cfg_attr(target_os = "arceos", path = "sys/socket.rs")]
+mod socket;
+
+#[allow(
+    non_camel_case_types,
+    missing_docs,
+    dead_code,
+    non_upper_case_globals,
+    unused_variables,
+)]
+//#[cfg(target_os = "arceos")]
+pub mod libc_consts;
+#[cfg(target_os = "arceos")]
+use crate::libc_consts::{FromRawFd, IntoRawFd};
+#[allow(
+    non_camel_case_types,
+    missing_docs,
+    dead_code,
+    non_upper_case_globals,
+    unused_variables,
+)]
+#[cfg(target_os = "arceos")]
+pub mod arceos_tcp;
 
 #[cfg_attr(unix, path = "sys/unix.rs")]
+#[cfg_attr(target_os = "arceos", path = "sys/arceos.rs")]
 #[cfg_attr(windows, path = "sys/windows.rs")]
+#[allow(unused_imports, unused_macros)]
 mod sys;
 
-#[cfg(not(any(windows, unix)))]
+
+
+#[cfg(not(any(windows, unix, target_os = "arceos")))]
 compile_error!("Socket2 doesn't support the compile target");
 
 use sys::c_int;
