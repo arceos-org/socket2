@@ -99,6 +99,7 @@ macro_rules! impl_debug {
 }
 
 /// Macro to convert from one network type to another.
+#[allow(unused_macros)]
 macro_rules! from {
     ($from: ty, $for: ty) => {
         impl From<$from> for $for {
@@ -191,10 +192,7 @@ mod socket;
     non_upper_case_globals,
     unused_variables,
 )]
-//#[cfg(target_os = "arceos")]
 pub mod libc_consts;
-#[cfg(target_os = "arceos")]
-use crate::libc_consts::{FromRawFd, IntoRawFd};
 #[allow(
     non_camel_case_types,
     missing_docs,
@@ -425,6 +423,7 @@ pub struct TcpKeepalive {
         target_os = "solaris",
         target_os = "nto",
     )))]
+    #[allow(dead_code)]
     interval: Option<Duration>,
     #[cfg(not(any(
         target_os = "openbsd",
@@ -433,6 +432,7 @@ pub struct TcpKeepalive {
         target_os = "windows",
         target_os = "nto",
     )))]
+    #[allow(dead_code)]
     retries: Option<u32>,
 }
 

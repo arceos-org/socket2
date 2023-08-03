@@ -13,7 +13,8 @@ use std::io::{IoSlice, IoSliceMut};
 use std::mem::MaybeUninit;
 #[cfg(not(target_os = "nto"))]
 use std::net::Ipv6Addr;
-use std::net::{self, Ipv4Addr, Shutdown, SocketAddr};
+//use std::net::{self, Ipv4Addr, Shutdown, SocketAddr};
+use std::net::{Ipv4Addr, Shutdown, SocketAddr};
 #[cfg(unix)]
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 #[cfg(windows)]

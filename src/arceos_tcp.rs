@@ -37,7 +37,7 @@ pub fn listen(socket: &Arc<AxTcpSocketHandle>, backlog: u32) -> io::Result<()> {
 pub fn accept(socket: &Arc<AxTcpSocketHandle>) -> io::Result<(Arc<AxTcpSocketHandle>, SocketAddr)> {
     let (handle, addr) = cvt(api::ax_tcp_accept(socket.as_ref()))?;
     //cvt(api::ax_tcp_set_nonblocking(&handle, true))?;
-    let socket = unsafe { Arc::new(handle) };
+    let socket = Arc::new(handle);
     Ok((socket, addr))
 }
 

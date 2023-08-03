@@ -167,9 +167,11 @@ macro_rules! syscall {
     }};
 }
 
+/*
 /// Maximum size of a buffer passed to system call like `recv` and `send`.
 #[cfg(not(target_vendor = "apple"))]
 const MAX_BUF_LEN: usize = <ssize_t>::max_value() as usize;
+*/
 
 // The maximum read limit on most posix-like systems is `SSIZE_MAX`, with the
 // man page quoting that if the count of bytes to read is greater than
@@ -214,7 +216,7 @@ type IovLen = usize;
     target_os = "arceos",
     target_vendor = "apple",
 ))]
-type IovLen = c_int;
+//type IovLen = c_int;
 
 /// Unix only API.
 impl Domain {
@@ -573,28 +575,28 @@ impl SockAddr {
 
 pub(crate) type Socket = c_int;
 
-pub(crate) unsafe fn socket_from_raw(socket: Socket) -> crate::socket::Inner {
+pub(crate) unsafe fn socket_from_raw(_socket: Socket) -> crate::socket::Inner {
     //crate::socket::Inner::from_raw_fd(socket)
     std::sync::Arc::new(tcp::new_tcp_socket_handle().unwrap())
 }
 
-pub(crate) fn socket_as_raw(socket: &crate::socket::Inner) -> Socket {
+pub(crate) fn socket_as_raw(_socket: &crate::socket::Inner) -> Socket {
     //socket.as_raw_fd()
     FAKE_SOCKET_FD
 }
 
-pub(crate) fn socket_into_raw(socket: crate::socket::Inner) -> Socket {
+pub(crate) fn socket_into_raw(_socket: crate::socket::Inner) -> Socket {
     //socket.into_raw_fd()
     FAKE_SOCKET_FD
 }
 
-pub(crate) fn socket(family: c_int, ty: c_int, protocol: c_int) -> io::Result<Socket> {
+pub(crate) fn socket(_family: c_int, _ty: c_int, _protocol: c_int) -> io::Result<Socket> {
     //syscall!(socket(family, ty, protocol))
     Ok(FAKE_SOCKET_FD)
 }
 
 #[cfg(feature = "all")]
-pub(crate) fn socketpair(family: c_int, ty: c_int, protocol: c_int) -> io::Result<[Socket; 2]> {
+pub(crate) fn socketpair(_family: c_int, _ty: c_int, _protocol: c_int) -> io::Result<[Socket; 2]> {
     //let mut fds = [0, 0];
     //syscall!(socketpair(family, ty, protocol, fds.as_mut_ptr())).map(|_| fds)
     os_required!();
@@ -605,12 +607,12 @@ pub(crate) fn bind(fd: &Arc<AxTcpSocketHandle>, addr: &SocketAddr) -> io::Result
     tcp::bind(fd, *addr)
 }
 
-pub(crate) fn connect(fd: &Arc<AxTcpSocketHandle>, addr: &SocketAddr) -> io::Result<()> {
+pub(crate) fn connect(_fd: &Arc<AxTcpSocketHandle>, _addr: &SocketAddr) -> io::Result<()> {
     //syscall!(connect(fd, addr.as_ptr(), addr.len())).map(|_| ())
     os_required!();
 }
 
-pub(crate) fn poll_connect(socket: &crate::Socket, timeout: Duration) -> io::Result<()> {
+pub(crate) fn poll_connect(_socket: &crate::Socket, _timeout: Duration) -> io::Result<()> {
     os_required!();
     /*
     let start = Instant::now();
@@ -657,6 +659,7 @@ pub(crate) fn poll_connect(socket: &crate::Socket, timeout: Duration) -> io::Res
 }
 
 // TODO: use clamp from std lib, stable since 1.50.
+/*
 fn clamp<T>(value: T, min: T, max: T) -> T
 where
     T: Ord,
@@ -669,6 +672,7 @@ where
         value
     }
 }
+*/
 
 pub(crate) fn listen(fd: &Arc<AxTcpSocketHandle>, backlog: c_int) -> io::Result<()> {
     //syscall!(listen(fd, backlog)).map(|_| ())
@@ -681,7 +685,7 @@ pub(crate) fn accept(fd: &Arc<AxTcpSocketHandle>) -> io::Result<(Arc<AxTcpSocket
     tcp::accept(fd)
 }
 
-pub(crate) fn getsockname(fd: Socket) -> io::Result<SockAddr> {
+pub(crate) fn getsockname(_fd: Socket) -> io::Result<SockAddr> {
     // Safety: `accept` initialises the `SockAddr` for us.
     /*
     unsafe { SockAddr::init(|storage, len| syscall!(getsockname(fd, storage.cast(), len))) }
@@ -690,7 +694,7 @@ pub(crate) fn getsockname(fd: Socket) -> io::Result<SockAddr> {
     os_required!();
 }
 
-pub(crate) fn getpeername(fd: Socket) -> io::Result<SockAddr> {
+pub(crate) fn getpeername(_fd: Socket) -> io::Result<SockAddr> {
     // Safety: `accept` initialises the `SockAddr` for us.
     /*
     unsafe { SockAddr::init(|storage, len| syscall!(getpeername(fd, storage.cast(), len))) }
@@ -699,7 +703,7 @@ pub(crate) fn getpeername(fd: Socket) -> io::Result<SockAddr> {
     os_required!();
 }
 
-pub(crate) fn try_clone(fd: Socket) -> io::Result<Socket> {
+pub(crate) fn try_clone(_fd: Socket) -> io::Result<Socket> {
     //syscall!(fcntl(fd, libc::F_DUPFD_CLOEXEC, 0))
     os_required!();
 }
@@ -712,17 +716,19 @@ pub(crate) fn set_nonblocking(fd: Socket, nonblocking: bool) -> io::Result<()> {
     }
 }
 
-pub(crate) fn shutdown(fd: Socket, how: Shutdown) -> io::Result<()> {
+pub(crate) fn shutdown(_fd: Socket, _how: Shutdown) -> io::Result<()> {
+    /*
     let how = match how {
         Shutdown::Write => libc::SHUT_WR,
         Shutdown::Read => libc::SHUT_RD,
         Shutdown::Both => libc::SHUT_RDWR,
     };
+    */
     //syscall!(shutdown(fd, how)).map(|_| ())
     os_required!();
 }
 
-pub(crate) fn recv(fd: &Arc<AxTcpSocketHandle>, buf: &mut [MaybeUninit<u8>], flags: c_int) -> io::Result<usize> {
+pub(crate) fn recv(fd: &Arc<AxTcpSocketHandle>, buf: &mut [MaybeUninit<u8>], _flags: c_int) -> io::Result<usize> {
     /*
     syscall!(recv(
         fd,
@@ -736,9 +742,9 @@ pub(crate) fn recv(fd: &Arc<AxTcpSocketHandle>, buf: &mut [MaybeUninit<u8>], fla
 }
 
 pub(crate) fn recv_from(
-    fd: Socket,
-    buf: &mut [MaybeUninit<u8>],
-    flags: c_int,
+    _fd: Socket,
+    _buf: &mut [MaybeUninit<u8>],
+    _flags: c_int,
 ) -> io::Result<(usize, SockAddr)> {
     /*
     // Safety: `recvfrom` initialises the `SockAddr` for us.
@@ -800,10 +806,10 @@ pub(crate) fn recv_from_vectored(
 /// Returns the (bytes received, sending address len, `RecvFlags`).
 #[cfg(not(target_os = "redox"))]
 fn recvmsg(
-    fd: Socket,
-    msg_name: *mut sockaddr_storage,
-    bufs: &mut [crate::MaybeUninitSlice<'_>],
-    flags: c_int,
+    _fd: Socket,
+    _msg_name: *mut sockaddr_storage,
+    _bufs: &mut [crate::MaybeUninitSlice<'_>],
+    _flags: c_int,
 ) -> io::Result<(usize, libc::socklen_t, RecvFlags)> {
     /*
     let msg_namelen = if msg_name.is_null() {
@@ -841,7 +847,7 @@ pub(crate) fn send_vectored(fd: Socket, bufs: &[IoSlice<'_>], flags: c_int) -> i
     sendmsg(fd, ptr::null(), 0, bufs, flags)
 }
 
-pub(crate) fn send_to(fd: Socket, buf: &[u8], addr: &SockAddr, flags: c_int) -> io::Result<usize> {
+pub(crate) fn send_to(_fd: Socket, _buf: &[u8], _addr: &SockAddr, _flags: c_int) -> io::Result<usize> {
     /*
     syscall!(sendto(
         fd,
@@ -869,11 +875,11 @@ pub(crate) fn send_to_vectored(
 /// Returns the (bytes received, sending address len, `RecvFlags`).
 #[cfg(not(target_os = "redox"))]
 fn sendmsg(
-    fd: Socket,
-    msg_name: *const sockaddr_storage,
-    msg_namelen: socklen_t,
-    bufs: &[IoSlice<'_>],
-    flags: c_int,
+    _fd: Socket,
+    _msg_name: *const sockaddr_storage,
+    _msg_namelen: socklen_t,
+    _bufs: &[IoSlice<'_>],
+    _flags: c_int,
 ) -> io::Result<usize> {
     /*
     // libc::msghdr contains unexported padding fields on Fuchsia.
@@ -985,7 +991,7 @@ fn into_secs(duration: Duration) -> c_int {
 }
 
 /// Add `flag` to the current set flags of `F_GETFD`.
-fn fcntl_add(fd: Socket, get_cmd: c_int, set_cmd: c_int, flag: c_int) -> io::Result<()> {
+fn fcntl_add(_fd: Socket, _get_cmd: c_int, _set_cmd: c_int, _flag: c_int) -> io::Result<()> {
     /*
     let previous = syscall!(fcntl(fd, get_cmd))?;
     let new = previous | flag;
@@ -1000,7 +1006,7 @@ fn fcntl_add(fd: Socket, get_cmd: c_int, set_cmd: c_int, flag: c_int) -> io::Res
 }
 
 /// Remove `flag` to the current set flags of `F_GETFD`.
-fn fcntl_remove(fd: Socket, get_cmd: c_int, set_cmd: c_int, flag: c_int) -> io::Result<()> {
+fn fcntl_remove(_fd: Socket, _get_cmd: c_int, _set_cmd: c_int, _flag: c_int) -> io::Result<()> {
     /*
     let previous = syscall!(fcntl(fd, get_cmd))?;
     let new = previous & !flag;
@@ -1015,7 +1021,7 @@ fn fcntl_remove(fd: Socket, get_cmd: c_int, set_cmd: c_int, flag: c_int) -> io::
 }
 
 /// Caller must ensure `T` is the correct type for `opt` and `val`.
-pub(crate) unsafe fn getsockopt<T>(fd: Socket, opt: c_int, val: c_int) -> io::Result<T> {
+pub(crate) unsafe fn getsockopt<T>(_fd: Socket, _opt: c_int, _val: c_int) -> io::Result<T> {
     /*
     let mut payload: MaybeUninit<T> = MaybeUninit::uninit();
     let mut len = size_of::<T>() as libc::socklen_t;
@@ -1037,10 +1043,10 @@ pub(crate) unsafe fn getsockopt<T>(fd: Socket, opt: c_int, val: c_int) -> io::Re
 
 /// Caller must ensure `T` is the correct type for `opt` and `val`.
 pub(crate) unsafe fn setsockopt<T>(
-    fd: Socket,
-    opt: c_int,
-    val: c_int,
-    payload: T,
+    _fd: Socket,
+    _opt: c_int,
+    _val: c_int,
+    _payload: T,
 ) -> io::Result<()> {
     /*
     let payload = &payload as *const T as *const c_void;
